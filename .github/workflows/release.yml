@@ -132,6 +132,18 @@ jobs:
           echo "$got"
           test "$got" = "kamstack ${version} linux/amd64"
 
+      # Stable asset names let install.sh bootstrap from /releases/latest
+      # without knowing the version to build an archive name from.
+      - name: Prepare install assets
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          for arch in amd64 arm64 armv7; do
+            tar -xzf "dist/kamstack_${version}_linux_${arch}.tar.gz" -C dist
+            cp "dist/kamstack_${version}_linux_${arch}/kamstack" "dist/kamstack_linux_${arch}"
+            rm -rf "dist/kamstack_${version}_linux_${arch}"
+          done
+          cp install.sh dist/install.sh
+
       # Read stack.yml, verify both pinned component releases and their
       # SHA256SUMS, and write manifest.json. A missing tag, archive or checksum
       # fails the release (DST-25).
@@ -149,7 +161,7 @@ jobs:
       - name: Write SHA256SUMS
         run: |
           cd dist
-          sha256sum *.tar.gz > SHA256SUMS
+          sha256sum *.tar.gz kamstack_linux_* install.sh > SHA256SUMS
           cat SHA256SUMS
 
       - name: Publish release
@@ -160,4 +172,4 @@ jobs:
             --repo "${GITHUB_REPOSITORY}" \
             --title "${GITHUB_REF_NAME}" \
             --generate-notes \
-            dist/*.tar.gz dist/SHA256SUMS dist/manifest.json
+            dist/*.tar.gz dist/kamstack_linux_* dist/SHA256SUMS dist/manifest.json dist/install.sh
