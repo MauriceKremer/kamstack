@@ -58,6 +58,7 @@ go vet ./... && gofmt -l .
 | `doctor.go` | The bug-report report and its assembly |
 | `defaults/` | Bundled `kam.yml` and `kammon.yml`, embedded with `go:embed` |
 | `install.sh` | Bootstrap script attached to each release (stable asset names, D12) |
+| `scripts/release.sh` | Tags the pair, waits for their releases, pins `stack.yml`, tags kamstack |
 | `README.md` | Install, first run, update/rollback, backups and TLS posture |
 | `stack.yml` | The pinned `kam`/`kammon` release pair this release installs |
 | `internal/stack/` | Stack pin, manifest types and manifest assembly (tested) |

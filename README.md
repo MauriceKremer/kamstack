@@ -119,6 +119,17 @@ involved. Release archives contain only the binary, the default config,
 
 ### A binary release
 
+On a checkout with `kam/`, `kammon/` and `kamstack/` as siblings, run:
+
+```sh
+./scripts/release.sh          # asks for the version
+./scripts/release.sh 0.8.0    # or pass it
+```
+
+It checks that each repo is clean on `main`, tags `kam` and `kammon`, waits for
+their releases, updates the pins in `stack.yml`, and then tags `kamstack`. The
+steps below are what the script performs by hand.
+
 A release is three tags and one update on each Pi. Order matters: both component
 releases must exist before `kamstack` is tagged, because the manifest step
 verifies them and fails loudly otherwise. Use one version number for the pair.
