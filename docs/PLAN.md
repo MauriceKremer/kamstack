@@ -208,20 +208,25 @@ broken binary triggers a rollback with the old version running again.
 
 ## Phase 5 — Bootstrap and documentation
 
-- [ ] **DST-32** `install.sh` (in the `kamstack` repo, attached to its release):
+- [x] **DST-32** `install.sh` (in the `kamstack` repo, attached to its release):
       `curl -fsSL https://github.com/<org>/kamstack/releases/latest/download/install.sh | sh` —
       detect arch, download `kamstack` and `install.sh`'s checksum, install to
       `/opt/kamstack/bin`, then hand over to `sudo kamstack setup`. The script stays under ~40 lines.
-- [ ] **DST-33** `README.md`: install, first run, USB discovery, update, rollback,
+      Written as `| sudo sh` because it installs into `/opt`; after setup it also runs
+      `kamstack update` so the first run ends with the pinned pair installed. Releases publish
+      stable `kamstack_linux_<arch>` aliases for it (D12).
+- [x] **DST-33** `README.md`: install, first run, USB discovery, update, rollback,
       backups, `doctor`, and where the configs live. Plain words, beginner-first.
-- [ ] **DST-34** `../kam/README.md` and `../kammon/README.md`: a short "Install on a Raspberry Pi"
+- [x] **DST-34** `../kam/README.md` and `../kammon/README.md`: a short "Install on a Raspberry Pi"
       section pointing at `kamstack`; the manual build instructions stay.
-- [ ] **DST-35** `docs/DECISIONS.md` records: three binaries and where the pair lives,
+- [x] **DST-35** `docs/DECISIONS.md` records: three binaries and where the pair lives,
       matched-pair versioning, stop-then-copy backups, sha256 only (no signing), no auto-update
       timer, systemd owns supervision, generated plain-text secrets, TLS posture below.
-- [ ] **DST-36** TLS posture, written down, no code: a fresh install serves KAMmon on `:8080` over
+      D1 now names the three binaries; D2..D8 already covered the rest.
+- [x] **DST-36** TLS posture, written down, no code: a fresh install serves KAMmon on `:8080` over
       the LAN with generated passwords; anyone exposing it beyond the LAN puts TLS in front
       (reverse proxy, or KAMmon's existing `tls_cert`/`tls_key`). Consistent with KAMmon D31.
+      Recorded as D11.
 
 **Done when:** a Pi that has never seen the project goes from `curl | sh` to a login page in one
 session, following only the README.
