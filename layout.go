@@ -53,8 +53,34 @@ func ensureLayout(a *app) error {
 	if err := os.Chmod(a.dataDir, 0o750); err != nil {
 		return err
 	}
+	if err := ensureDataOwnership(a); err != nil {
+		return err
+	}
 	if err := os.Chmod(a.roomsDir(), 0o750); err != nil {
 		return err
+	}
+	return nil
+}
+
+// ensureDataOwnership gives the service user the database files and room keys,
+// not just the data directory. A database created or touched by another user
+// (a manual run, a copied backup) otherwise stays unwritable, and KAM runs with
+// a read-only SQLite handle: packets still arrive, but nothing is stored.
+func ensureDataOwnership(a *app) error {
+	for _, name := range []string{"kam.db", "kam.db-wal", "kam.db-shm"} {
+		path := filepath.Join(a.dataDir, name)
+		if _, err := os.Lstat(path); err != nil {
+			if os.IsNotExist(err) {
+				continue
+			}
+			return err
+		}
+		if _, err := a.run("chown", serviceUser+":"+serviceUser, path); err != nil {
+			return fmt.Errorf("give %s ownership of %s: %w", serviceUser, path, err)
+		}
+	}
+	if _, err := a.run("chown", "-R", serviceUser+":"+serviceUser, a.roomsDir()); err != nil {
+		return fmt.Errorf("give %s ownership of %s: %w", serviceUser, a.roomsDir(), err)
 	}
 	return nil
 }

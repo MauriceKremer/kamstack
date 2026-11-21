@@ -135,6 +135,11 @@ func applyUpdate(a *app, manifest stack.Manifest, kamTarget, kammonTarget stack.
 		_, _ = a.run("systemctl", "start", kamService, kammonService)
 		return fmt.Errorf("backup failed; services restarted: %w", err)
 	}
+	// Repair ownership drift while the services are stopped: KAM cannot write a
+	// database or room key that belongs to another user (the read-only trap).
+	if err := ensureDataOwnership(a); err != nil {
+		return rollbackUpdate(a, backup, err)
+	}
 
 	for _, swap := range []struct {
 		name string

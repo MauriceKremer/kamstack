@@ -177,6 +177,14 @@ func TestUpdateVerifiesThenStopsBacksUpAndSwaps(t *testing.T) {
 	if !strings.Contains(joined, "systemctl stop") || !strings.Contains(joined, "systemctl start") {
 		t.Fatalf("commands = %v", *fixture.commands)
 	}
+	for _, want := range []string{
+		"chown kamstack:kamstack " + filepath.Join(fixture.app.dataDir, "kam.db"),
+		"chown -R kamstack:kamstack " + fixture.app.roomsDir(),
+	} {
+		if !strings.Contains(joined, want) {
+			t.Errorf("update did not repair ownership (%q): %v", want, *fixture.commands)
+		}
+	}
 
 	backups, err := os.ReadDir(filepath.Join(fixture.app.dataDir, "backups"))
 	if err != nil || len(backups) != 1 {
