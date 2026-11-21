@@ -1,0 +1,10 @@
+# The matched pair this kamstack release installs. Both components are tagged
+# with the same version in their own repositories; the release workflow checks
+# that both tags and their SHA256SUMS exist before publishing a manifest.
+kam: v0.7.0
+kammon: v0.7.0
+
+# The KAM API contract KAMmon was built against, for humans reading this file.
+# The machine-readable copy lives in kammon/docs/kam-api/KAM_COMMIT and in the
+# KAMmon release notes (DST-13).
+contract_commit: 3d1aa7f6e878ceec7cddfc2b6eb2cfe302074697
