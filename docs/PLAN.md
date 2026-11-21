@@ -166,12 +166,16 @@ a complete, readable report.
 
 The updater is the only place that knows both components together.
 
-- [ ] **DST-24** `stack.yml` in the `kamstack` repo pins the pair: `kam: v0.7.0`,
+- [x] **DST-24** `stack.yml` in the `kamstack` repo pins the pair: `kam: v0.7.0`,
       `kammon: v0.7.0` (plus `contract_commit` for humans).
-- [ ] **DST-25** `kamstack` release workflow (tag in the `kamstack` repo): read `stack.yml`, verify
+      `internal/stack` loads and validates it (both tags must name the same version).
+- [x] **DST-25** `kamstack` release workflow (tag in the `kamstack` repo): read `stack.yml`, verify
       each pinned component release and its `SHA256SUMS` exist, and generate `manifest.json`
       (version, per-target URLs and checksums) attached to the `kamstack` release together with
       the `kamstack` binaries. Fail loudly if a pinned tag is missing.
+      `tools/manifest` fetches both releases through the GitHub API; the workflow builds the three
+      `kamstack_<version>_linux_<arch>.tar.gz` archives and attaches `SHA256SUMS` and
+      `manifest.json`. Manifest shape is decision D10.
 - [ ] **DST-26** `kamstack update --check`: fetch the manifest, compare with installed versions,
       print `installed / available`, exit `0` when current and `2` when outdated (cron-friendly).
 - [ ] **DST-27** `kamstack update`: download `kam` and `kammon` for this machine's arch to a temp

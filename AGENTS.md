@@ -55,4 +55,7 @@ go vet ./... && gofmt -l .
 | `services.go`, `logs.go` | systemctl/status and journalctl wrappers |
 | `doctor.go` | The bug-report report and its assembly |
 | `defaults/` | Bundled `kam.yml` and `kammon.yml`, embedded with `go:embed` |
+| `stack.yml` | The pinned `kam`/`kammon` release pair this release installs |
+| `internal/stack/` | Stack pin, manifest types and manifest assembly (tested) |
+| `tools/manifest/` | Release-only tool that verifies the pinned releases and writes `manifest.json` |
 | `docs/DECISIONS.md` | Decision log (id, outcome, why) |
