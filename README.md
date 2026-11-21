@@ -106,6 +106,61 @@ HTTPS, or KAMmon's own `tls_cert`/`tls_key` settings. Secrets are plain text in
 the YAML files by design; `kamstack` generates them once and never stores a
 second copy.
 
+## Releasing (maintainers)
+
+There are two independent deploys.
+
+### Manuals and other docs
+
+`kam` and `kammon` both have GitHub Pages enabled on `main` → `/docs`. Merge a
+docs or manual change to `main` and Pages rebuilds; no tag and no Pi update is
+involved. Release archives contain only the binary, the default config,
+`LICENSE` and `README.md`, so manuals never ship inside a binary release.
+
+### A binary release
+
+A release is three tags and one update on each Pi. Order matters: both component
+releases must exist before `kamstack` is tagged, because the manifest step
+verifies them and fails loudly otherwise. Use one version number for the pair.
+
+1. **KAM** — merge to `main`, let CI pass, then tag and push:
+
+   ```sh
+   git tag -a v0.8.0 -m "kamstack v0.8.0"
+   git push origin v0.8.0
+   ```
+
+   The workflow verifies the build, cross-compiles arm64/armv7/amd64, and
+   publishes `kam_<version>_linux_<arch>.tar.gz` plus `SHA256SUMS`.
+
+2. **KAMmon** — the same tag number, the same steps. Its release notes also
+   name the KAM API contract commit (`docs/kam-api/KAM_COMMIT`).
+
+3. **kamstack** — update `stack.yml` to pin the new tags and refresh
+   `contract_commit` from `kammon/docs/kam-api/KAM_COMMIT`, merge that change to
+   `main`, then tag the same number:
+
+   ```sh
+   git tag -a v0.8.0 -m "kamstack v0.8.0"
+   git push origin v0.8.0
+   ```
+
+   The workflow verifies both component releases and their checksums, then
+   publishes the `kamstack` archives, the stable `kamstack_linux_<arch>` assets
+   and `install.sh` used by the bootstrap script, `SHA256SUMS`, and
+   `manifest.json`.
+
+4. **Deploy** — on each Pi:
+
+   ```sh
+   sudo kamstack update --check   # exit 0 current, 2 outdated
+   sudo kamstack update           # backup, stop, swap, start, health check, rollback
+   ```
+
+   A fresh machine uses the install script from the new release instead.
+
+Docs-only changes do not need tags or a Pi update.
+
 ## Development
 
 ```sh
