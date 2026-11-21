@@ -49,7 +49,7 @@ var commands = map[string]command{
 	"logs":    {"logs [-f] [-n N]", runLogs},
 	"version": {"version", runVersion},
 	"doctor":  {"doctor", runDoctor},
-	"update":  {"update [--check]", notImplemented("update")},
+	"update":  {"update [--check]", runUpdate},
 }
 
 func main() {
@@ -88,14 +88,6 @@ func printUsage(w io.Writer) {
 	fmt.Fprintln(w, "commands:")
 	for _, name := range commandOrder {
 		fmt.Fprintf(w, "  kamstack %s\n", commands[name].usage)
-	}
-}
-
-// notImplemented is the placeholder for subcommands the plan still lists as
-// open, so the scaffold builds and `kamstack help` already describes them.
-func notImplemented(name string) func(*app, []string) error {
-	return func(*app, []string) error {
-		return fmt.Errorf("%s: not implemented yet", name)
 	}
 }
 

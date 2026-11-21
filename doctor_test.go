@@ -31,6 +31,9 @@ func TestRenderDoctorShowsEverySection(t *testing.T) {
 		},
 		Disk:    diskStatus{Path: "/var/lib/kamstack", Free: 2 * 1024 * 1024 * 1024},
 		Journal: []string{"line one", "line two"},
+		Warnings: []string{
+			"database from an older version; restore the backup or reset the data",
+		},
 	}
 	var out bytes.Buffer
 	renderDoctor(&out, report)
@@ -44,6 +47,7 @@ func TestRenderDoctorShowsEverySection(t *testing.T) {
 		"KAMmon: 303 http://127.0.0.1:8080/",
 		"2.0 GiB free",
 		"line two",
+		"database from an older version",
 	} {
 		if !strings.Contains(out.String(), want) {
 			t.Errorf("doctor output missing %q:\n%s", want, out.String())
@@ -83,7 +87,7 @@ func TestCollectDoctorReadsConfigSerialAndProbes(t *testing.T) {
 		dataDir:   dataDir,
 		run: func(name string, args ...string) ([]byte, error) {
 			if name == "journalctl" {
-				return []byte("line one\nline two\n"), nil
+				return []byte("line one\nno such column: new_field\n"), nil
 			}
 			if name == "systemctl" && len(args) > 0 && args[0] == "is-active" {
 				if args[len(args)-1] == kamService {
@@ -119,5 +123,8 @@ func TestCollectDoctorReadsConfigSerialAndProbes(t *testing.T) {
 	}
 	if len(report.Journal) != 2 {
 		t.Errorf("journal = %+v", report.Journal)
+	}
+	if len(report.Warnings) != 1 || !strings.Contains(report.Warnings[0], "older version") {
+		t.Errorf("warnings = %+v", report.Warnings)
 	}
 }

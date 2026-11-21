@@ -176,24 +176,29 @@ The updater is the only place that knows both components together.
       `tools/manifest` fetches both releases through the GitHub API; the workflow builds the three
       `kamstack_<version>_linux_<arch>.tar.gz` archives and attaches `SHA256SUMS` and
       `manifest.json`. Manifest shape is decision D10.
-- [ ] **DST-26** `kamstack update --check`: fetch the manifest, compare with installed versions,
+- [x] **DST-26** `kamstack update --check`: fetch the manifest, compare with installed versions,
       print `installed / available`, exit `0` when current and `2` when outdated (cron-friendly).
-- [ ] **DST-27** `kamstack update`: download `kam` and `kammon` for this machine's arch to a temp
+      Implemented in `update.go`; the manifest URL can be overridden with `--manifest-url`.
+- [x] **DST-27** `kamstack update`: download `kam` and `kammon` for this machine's arch to a temp
       dir, verify sha256, **stop both units**, back up state, swap binaries keeping `.prev`,
       start, health check, roll back on failure.
-- [ ] **DST-28** Backup before swap, while the services are stopped: `kam.db`, `kam.db-wal`,
+      Both archives are verified and unpacked before systemd is touched.
+- [x] **DST-28** Backup before swap, while the services are stopped: `kam.db`, `kam.db-wal`,
       `kam.db-shm` (those that exist) and `rooms/` into
       `/var/lib/kamstack/backups/<YYYY-MM-DD-HHMM>-<version>.tar.gz`, keeping the newest 3.
       Copying files while stopped is the README's own documented safe method — no SQLite
       dependency, and the Pi has no `sqlite3` CLI.
-- [ ] **DST-29** Health check: `GET /v1/status` answers 200 and `GET /` on KAMmon answers (200/303)
+      Implemented in `backup.go` with `archive/tar`; no state means no empty archive.
+- [x] **DST-29** Health check: `GET /v1/status` answers 200 and `GET /` on KAMmon answers (200/303)
       within 10 s of start; otherwise restore `.prev`, start again, report failure and leave the
       backup in place.
-- [ ] **DST-30** Never touch `/etc/kamstack/*` or data during update, and never delete `kam.db` —
+      The 500 ms poll and 10 s budget live in `update.go`; tests shorten them.
+- [x] **DST-30** Never touch `/etc/kamstack/*` or data during update, and never delete `kam.db` —
       a schema change is reported by `doctor` (`no such column` in the journal) as
       "database from an older version; restore the backup or reset the data" rather than guessed at.
-- [ ] **DST-31** Tests for the update state machine with a fake `systemctl` and a local file server:
+- [x] **DST-31** Tests for the update state machine with a fake `systemctl` and a local file server:
       current, outdated, checksum mismatch, health-check failure with rollback, backup pruning.
+      `update_test.go` uses an `httptest` server and an injected command runner.
 
 **Done when:** on the Pi, `kamstack update --check` correctly reports the installed pair, a real
 `kamstack update` from `v0.7.0` to `v0.7.1` completes with services running, and a deliberately

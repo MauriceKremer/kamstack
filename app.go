@@ -60,6 +60,16 @@ type app struct {
 	// hostname supplies the default node name.
 	hostname func() (string, error)
 
+	// manifestURL is where update reads the pinned pair; fetch downloads it
+	// and the component archives.
+	manifestURL string
+	fetch       func(url string) ([]byte, error)
+	// sleep and healthTimeout keep the health check testable.
+	sleep         func(time.Duration)
+	healthTimeout time.Duration
+	// target is the manifest key for this build.
+	target func() string
+
 	// serialGlob and sysfsRoot are injectable for the USB table (DST-18).
 	serialGlob string
 	sysfsRoot  string
@@ -69,20 +79,25 @@ type app struct {
 
 func newApp(stdout, stderr io.Writer) *app {
 	a := &app{
-		binDir:      defaultBinDir,
-		configDir:   defaultConfigDir,
-		dataDir:     defaultDataDir,
-		unitDir:     defaultUnitDir,
-		stdin:       os.Stdin,
-		stdout:      stdout,
-		stderr:      stderr,
-		interactive: stdinIsTerminal(),
-		run:         execOutput,
-		httpGet:     httpStatus,
-		httpBody:    httpFetch,
-		hostname:    os.Hostname,
-		serialGlob:  "/dev/serial/by-id/*",
-		sysfsRoot:   "/sys",
+		binDir:        defaultBinDir,
+		configDir:     defaultConfigDir,
+		dataDir:       defaultDataDir,
+		unitDir:       defaultUnitDir,
+		stdin:         os.Stdin,
+		stdout:        stdout,
+		stderr:        stderr,
+		interactive:   stdinIsTerminal(),
+		run:           execOutput,
+		httpGet:       httpStatus,
+		httpBody:      httpFetch,
+		hostname:      os.Hostname,
+		manifestURL:   defaultManifestURL(),
+		fetch:         downloadURL,
+		sleep:         time.Sleep,
+		healthTimeout: defaultHealthTimeout,
+		target:        currentTarget,
+		serialGlob:    "/dev/serial/by-id/*",
+		sysfsRoot:     "/sys",
 	}
 	a.runInteractive = a.execInteractive
 	return a
@@ -170,14 +185,46 @@ func httpFetch(url string, timeout time.Duration) (int, []byte, error) {
 	return resp.StatusCode, body, nil
 }
 
+// downloadURL fetches a whole file (a manifest or an archive) for update.
+func downloadURL(url string) ([]byte, error) {
+	client := &http.Client{Timeout: 60 * time.Second}
+	resp, err := client.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("GET %s: %s", url, resp.Status)
+	}
+	return body, nil
+}
+
 func stdinIsTerminal() bool {
 	info, err := os.Stdin.Stat()
 	return err == nil && info.Mode()&os.ModeCharDevice != 0
 }
 
+// exitStatus is an error that carries a specific process exit code, used by
+// `update --check` (0 when current, 2 when outdated).
+type exitStatus struct {
+	code    int
+	message string
+}
+
+func (e *exitStatus) Error() string { return e.message }
+func (e *exitStatus) ExitCode() int { return e.code }
+
 // exitCode turns a command error into the process exit code, keeping the
 // code a wrapped *exec.ExitError carries (DST-19).
 func exitCode(err error) int {
+	var status interface{ ExitCode() int }
+	if errors.As(err, &status) && status.ExitCode() > 0 {
+		return status.ExitCode()
+	}
 	var exit *exec.ExitError
 	if errors.As(err, &exit) && exit.ExitCode() > 0 {
 		return exit.ExitCode()

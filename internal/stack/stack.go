@@ -3,6 +3,7 @@
 package stack
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"sort"
@@ -125,6 +126,18 @@ func component(name, tag string, release Release) (Component, error) {
 		return Component{}, fmt.Errorf("%s %s: missing %s", name, tag, strings.Join(missing, ", "))
 	}
 	return result, nil
+}
+
+// ParseManifest decodes the manifest a kamstack release publishes.
+func ParseManifest(raw []byte) (Manifest, error) {
+	var manifest Manifest
+	if err := json.Unmarshal(raw, &manifest); err != nil {
+		return Manifest{}, err
+	}
+	if manifest.Version == "" || manifest.Kam.Version == "" || manifest.Kammon.Version == "" {
+		return Manifest{}, fmt.Errorf("manifest is missing a version")
+	}
+	return manifest, nil
 }
 
 // AssetName is the archive name the component release workflows publish.

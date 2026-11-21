@@ -27,6 +27,7 @@ type doctorReport struct {
 	Endpoints []endpointStatus
 	Disk      diskStatus
 	Journal   []string
+	Warnings  []string
 }
 
 type fileStatus struct {
@@ -130,6 +131,12 @@ func collectDoctor(a *app) doctorReport {
 	} else {
 		report.Journal = splitLines(string(out))
 	}
+	// A schema change after an update shows up as a missing column. Say what
+	// it means instead of guessing at the failed SQL (DST-30).
+	if strings.Contains(strings.ToLower(strings.Join(report.Journal, "\n")), "no such column") {
+		report.Warnings = append(report.Warnings,
+			"database from an older version; restore the backup or reset the data")
+	}
 	return report
 }
 
@@ -177,6 +184,13 @@ func renderDoctor(w io.Writer, report doctorReport) {
 	}
 	for _, line := range report.Journal {
 		fmt.Fprintf(w, "  %s\n", line)
+	}
+
+	if len(report.Warnings) > 0 {
+		fmt.Fprintf(w, "\nNotes\n")
+		for _, warning := range report.Warnings {
+			fmt.Fprintf(w, "  %s\n", warning)
+		}
 	}
 }
 

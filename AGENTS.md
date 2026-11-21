@@ -53,6 +53,8 @@ go vet ./... && gofmt -l .
 | `setup.go` | `setup`: layout, configs, units, enable/start |
 | `usb.go` | `usb`: by-id discovery and driver table |
 | `services.go`, `logs.go` | systemctl/status and journalctl wrappers |
+| `update.go` | `update`/`--check`: manifest, download/verify, swap, health check, rollback |
+| `backup.go` | Stop-time database/rooms backup and pruning |
 | `doctor.go` | The bug-report report and its assembly |
 | `defaults/` | Bundled `kam.yml` and `kammon.yml`, embedded with `go:embed` |
 | `stack.yml` | The pinned `kam`/`kammon` release pair this release installs |
