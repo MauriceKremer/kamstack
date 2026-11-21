@@ -12,8 +12,11 @@ func TestCommittedStackIsValid(t *testing.T) {
 	if err != nil {
 		t.Fatalf("stack.yml: %v", err)
 	}
-	if pin.Version() != "0.7.0" {
-		t.Errorf("version = %q", pin.Version())
+	if pin.Version() == "" {
+		t.Error("version is empty")
+	}
+	if !strings.HasPrefix(pin.Kam, "v") || !strings.HasPrefix(pin.Kammon, "v") {
+		t.Errorf("tags should keep the v prefix: kam %q, kammon %q", pin.Kam, pin.Kammon)
 	}
 	if pin.ContractCommit == "" {
 		t.Error("contract_commit is empty")

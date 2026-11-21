@@ -57,6 +57,8 @@ go vet ./... && gofmt -l .
 | `backup.go` | Stop-time database/rooms backup and pruning |
 | `doctor.go` | The bug-report report and its assembly |
 | `defaults/` | Bundled `kam.yml` and `kammon.yml`, embedded with `go:embed` |
+| `install.sh` | Bootstrap script attached to each release (stable asset names, D12) |
+| `README.md` | Install, first run, update/rollback, backups and TLS posture |
 | `stack.yml` | The pinned `kam`/`kammon` release pair this release installs |
 | `internal/stack/` | Stack pin, manifest types and manifest assembly (tested) |
 | `tools/manifest/` | Release-only tool that verifies the pinned releases and writes `manifest.json` |
