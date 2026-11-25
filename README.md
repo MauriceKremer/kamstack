@@ -95,6 +95,21 @@ Do not delete `kam.db` to fix a problem. `kamstack doctor` names a database from
 an older version (`no such column` in the journal) instead of guessing: restore a
 backup or start from an empty data directory deliberately.
 
+### Nodes installed before web-user editing
+
+Older `kamstack` units ran KAMmon under `ProtectSystem=strict` without a
+`ReadWritePaths`, so the service could read but not rewrite `kammon.yml`. Adding
+or editing a web user then failed. `kamstack doctor` flags this, and new installs
+ship the fixed unit. To fix an existing node:
+
+```sh
+sudo mkdir -p /etc/systemd/system/kamstack-kammon.service.d
+printf [Service]
+ReadWritePaths=/etc/kamstack
+ | sudo tee /etc/systemd/system/kamstack-kammon.service.d/50-readwrite.conf
+sudo systemctl daemon-reload && sudo systemctl restart kamstack-kammon
+```
+
 ## Security and TLS
 
 A fresh install serves KAMmon on `:8080` over the LAN with the generated

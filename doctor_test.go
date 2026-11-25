@@ -55,6 +55,29 @@ func TestRenderDoctorShowsEverySection(t *testing.T) {
 	}
 }
 
+func TestUnitConfigWriteAccess(t *testing.T) {
+	a := &app{run: func(name string, args ...string) ([]byte, error) {
+		return []byte("ProtectSystem=strict\nReadWritePaths=/var/lib/kamstack /etc/kamstack\n"), nil
+	}}
+	if w := unitConfigWriteAccess(a, "kamstack-kammon", "/etc/kamstack"); w != "" {
+		t.Errorf("writable config dir should not warn, got %q", w)
+	}
+
+	a = &app{run: func(name string, args ...string) ([]byte, error) {
+		return []byte("ProtectSystem=strict\nReadWritePaths=\n"), nil
+	}}
+	if w := unitConfigWriteAccess(a, "kamstack-kammon", "/etc/kamstack"); !strings.Contains(w, "is not in ReadWritePaths") {
+		t.Errorf("read-only config dir should warn, got %q", w)
+	}
+
+	a = &app{run: func(name string, args ...string) ([]byte, error) {
+		return []byte("ProtectSystem=no\nReadWritePaths=\n"), nil
+	}}
+	if w := unitConfigWriteAccess(a, "kamstack-kammon", "/etc/kamstack"); w != "" {
+		t.Errorf("non-strict unit should not warn, got %q", w)
+	}
+}
+
 func TestCollectDoctorReadsConfigSerialAndProbes(t *testing.T) {
 	root := t.TempDir()
 	configDir := filepath.Join(root, "etc")
@@ -95,6 +118,12 @@ func TestCollectDoctorReadsConfigSerialAndProbes(t *testing.T) {
 				}
 				return []byte("inactive\n"), nil
 			}
+			if name == "systemctl" && len(args) > 1 && args[0] == "show" {
+				if args[1] == kamService {
+					return []byte("ProtectSystem=strict\nReadWritePaths=" + configDir + "\n"), nil
+				}
+				return []byte("ProtectSystem=strict\nReadWritePaths=\n"), nil
+			}
 			return nil, nil
 		},
 		httpGet: func(url string, _ time.Duration) (int, error) {
@@ -124,7 +153,11 @@ func TestCollectDoctorReadsConfigSerialAndProbes(t *testing.T) {
 	if len(report.Journal) != 2 {
 		t.Errorf("journal = %+v", report.Journal)
 	}
-	if len(report.Warnings) != 1 || !strings.Contains(report.Warnings[0], "older version") {
-		t.Errorf("warnings = %+v", report.Warnings)
+	joined := strings.Join(report.Warnings, "\n")
+	if !strings.Contains(joined, "older version") {
+		t.Errorf("warnings missing schema note: %+v", report.Warnings)
+	}
+	if !strings.Contains(joined, kammonService+": ProtectSystem=strict") || !strings.Contains(joined, configDir+" is not in ReadWritePaths") {
+		t.Errorf("warnings missing write-access note: %+v", report.Warnings)
 	}
 }

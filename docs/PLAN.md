@@ -150,11 +150,13 @@ ExecStart=/opt/kamstack/bin/kammon -config /etc/kamstack/kammon.yml
 Restart=on-failure
 RestartSec=5
 ProtectSystem=strict
+ReadWritePaths=/etc/kamstack
 ```
 
-**Why `ReadWritePaths=/etc/kamstack`:** KAM rewrites `kam.yml` at runtime (`channel upsert`,
-`PUT /v1/modem/radio`). The config directory must be writable by `kamstack:kamstack` (0660).
-KAMmon writes nothing, so it runs fully locked down.
+**Why `ReadWritePaths=/etc/kamstack` for both units:** KAM rewrites `kam.yml` at runtime (`channel upsert`,
+`PUT /v1/modem/radio`), and KAMmon rewrites `kammon.yml` when an admin adds, edits or deletes a
+web user. The config directory must be writable by `kamstack:kamstack` (0660). Neither service
+needs write access anywhere else.
 
 **Done when:** on a clean Pi, `./kamstack setup` + `./kamstack usb` leaves both services enabled,
 `systemctl status` green, the KAMmon login reachable from the LAN, and `kamstack doctor` printing

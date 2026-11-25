@@ -97,6 +97,10 @@ func TestSetupWritesLayoutConfigsUnitsAndStarts(t *testing.T) {
 		if !strings.Contains(string(content), "WantedBy=multi-user.target") {
 			t.Errorf("unit %s is not enabled at boot:\n%s", unit, content)
 		}
+		// Both services rewrite their YAML config; ProtectSystem=strict would block that.
+		if !strings.Contains(string(content), "ReadWritePaths="+a.configDir) {
+			t.Errorf("unit %s cannot write %s:\n%s", unit, a.configDir, content)
+		}
 	}
 	if _, err := os.Stat(a.roomsDir()); err != nil {
 		t.Errorf("rooms directory: %v", err)

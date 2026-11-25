@@ -131,6 +131,15 @@ func collectDoctor(a *app) doctorReport {
 	} else {
 		report.Journal = splitLines(string(out))
 	}
+	// A unit sandboxed by ProtectSystem must still list its config directory in
+	// ReadWritePaths, or the service cannot rewrite its YAML (KAMmon web users, KAM
+	// channel upsert). Drop-ins are included because systemctl resolves the unit.
+	for _, unit := range []string{kamService, kammonService} {
+		if warn := unitConfigWriteAccess(a, unit, a.configDir); warn != "" {
+			report.Warnings = append(report.Warnings, warn)
+		}
+	}
+
 	// A schema change after an update shows up as a missing column. Say what
 	// it means instead of guessing at the failed SQL (DST-30).
 	if strings.Contains(strings.ToLower(strings.Join(report.Journal, "\n")), "no such column") {
@@ -192,6 +201,42 @@ func renderDoctor(w io.Writer, report doctorReport) {
 			fmt.Fprintf(w, "  %s\n", warning)
 		}
 	}
+}
+
+// unitConfigWriteAccess returns a warning when a unit is hardened with
+// ProtectSystem but does not list configDir in ReadWritePaths, which would make
+// its config file read-only for the service. It returns "" when the unit is not
+// hardened, the directory is writable, or systemctl cannot tell us (no alarm).
+func unitConfigWriteAccess(a *app, unit, configDir string) string {
+	out, err := a.run("systemctl", "show", unit, "-p", "ProtectSystem", "-p", "ReadWritePaths")
+	if err != nil {
+		return ""
+	}
+	protect, paths := protectSystemFields(string(out))
+	switch protect {
+	case "strict", "full", "true", "yes", "1":
+	default:
+		return ""
+	}
+	if strings.Contains(" "+paths+" ", " "+configDir+" ") {
+		return ""
+	}
+	return fmt.Sprintf("%s: ProtectSystem=%s but %s is not in ReadWritePaths; the service cannot rewrite its config", unit, protect, configDir)
+}
+
+// protectSystemFields pulls the ProtectSystem and ReadWritePaths values out of
+// `systemctl show <unit> -p ProtectSystem -p ReadWritePaths` output.
+func protectSystemFields(out string) (protect, paths string) {
+	for _, line := range strings.Split(out, "\n") {
+		line = strings.TrimSpace(line)
+		switch {
+		case strings.HasPrefix(line, "ProtectSystem="):
+			protect = strings.TrimPrefix(line, "ProtectSystem=")
+		case strings.HasPrefix(line, "ReadWritePaths="):
+			paths = strings.TrimPrefix(line, "ReadWritePaths=")
+		}
+	}
+	return protect, paths
 }
 
 func splitLines(text string) []string {

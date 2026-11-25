@@ -38,6 +38,7 @@ ExecStart=%[2]s -config %[3]s
 Restart=on-failure
 RestartSec=5
 ProtectSystem=strict
+ReadWritePaths=%[4]s
 
 [Install]
 WantedBy=multi-user.target
@@ -58,6 +59,7 @@ func kammonUnit(a *app) string {
 		serviceUser,
 		a.binary("kammon"),
 		a.kammonConfigPath(),
+		a.configDir,
 	)
 }
 
